@@ -1,0 +1,7 @@
+mlflow
+click
+scikit-learn
+numpy
+pandas
+hyperopt
+setuptools
