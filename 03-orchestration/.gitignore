@@ -1,0 +1,5 @@
+env
+
+data/**
+artifacts_local/**
+backend.db
