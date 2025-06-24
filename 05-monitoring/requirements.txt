@@ -3,8 +3,7 @@ tqdm
 requests
 joblib
 pyarrow
-psycopg
-psycopg_binary
+psycopg2-binary
 evidently==0.6.7
 pandas
 numpy

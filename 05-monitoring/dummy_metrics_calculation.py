@@ -3,12 +3,13 @@ import time
 import random
 import logging 
 import uuid
+import psycopg2.sql
 import pytz
 import pandas as pd
 import io
-import psycopg
+import psycopg2
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]: %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s]: %(message)s")
 
 SEND_TIMEOUT = 10
 rand = random.Random()
@@ -22,14 +23,59 @@ create table dummy_metrics(
 	value3 float
 )
 """
+DB_HOST = "localhost"
+DB_PORT = 5432
+DB_USER = "postgres"
+DB_PASS = "example"
+DB_DATABASE = "test"
 
 def prep_db():
-	with psycopg.connect("host=localhost port=5432 user=postgres password=example", autocommit=True) as conn:
-		res = conn.execute("SELECT 1 FROM pg_database WHERE datname='test'")
-		if len(res.fetchall()) == 0:
-			conn.execute("create database test;")
-		with psycopg.connect("host=localhost port=5432 dbname=test user=postgres password=example") as conn:
-			conn.execute(create_table_statement)
+	with psycopg2.connect(
+		user=DB_USER,
+		password=DB_PASS,
+		host=DB_HOST,
+		port=DB_PORT
+	) as conn:
+		conn.autocommit = True
+		curr = conn.cursor()
+
+		curr.execute("SELECT 1 FROM pg_database WHERE datname='test'")
+
+		have_db = curr.fetchall()
+
+	if len(have_db) == 0:
+		logging.debug("Creating database called test...")
+		conn = psycopg2.connect(
+			user=DB_USER,
+			password=DB_PASS,
+			host=DB_HOST,
+			port=DB_PORT
+		)
+		conn.autocommit = True
+		curr = conn.cursor()
+		curr.execute("create database test;")
+		conn.close()
+		# with psycopg2.connect(
+		# 	user=DB_USER,
+		# 	password=DB_PASS,
+		# 	host=DB_HOST,
+		# 	port=DB_PORT
+		# ) as conn:
+		# 	conn.autocommit = True
+		# 	curr = conn.cursor()
+		# 	curr.execute("create database test;")
+			
+	with psycopg2.connect(
+			database=DB_DATABASE,
+			user=DB_USER,
+			password=DB_PASS,
+			host=DB_HOST,
+			port=DB_PORT
+		) as conn:
+			conn.autocommit = True
+			curr = conn.cursor()
+			curr.execute(create_table_statement)
+
 
 def calculate_dummy_metrics_postgresql(curr):
 	value1 = rand.randint(0, 1000)
@@ -44,8 +90,17 @@ def calculate_dummy_metrics_postgresql(curr):
 def main():
 	prep_db()
 	last_send = datetime.datetime.now() - datetime.timedelta(seconds=10)
-	with psycopg.connect("host=localhost port=5432 dbname=test user=postgres password=example", autocommit=True) as conn:
-		for i in range(0, 100):
+
+	with psycopg2.connect(
+		database=DB_DATABASE,
+		user=DB_USER,
+		password=DB_PASS,
+		host=DB_HOST,
+		port=DB_PORT
+	) as conn:
+	# with psycopg2.connect("host=localhost port=5432 dbname=test user=postgres password=example") as conn:
+		conn.autocommit = True
+		for _ in range(0, 100):
 			with conn.cursor() as curr:
 				calculate_dummy_metrics_postgresql(curr)
 
